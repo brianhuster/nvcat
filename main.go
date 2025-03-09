@@ -21,13 +21,14 @@ const (
 var (
 	lineNumbers = flag.Bool("n", false, "Show line numbers")
 	clean       = flag.Bool("clean", false, "Use a clean Neovim instance")
+	help        = flag.Bool("h", false, "Show help")
 	tab = ""
 )
 
 func main() {
 	flag.Parse()
 
-	if len(flag.Args()) < 1 {
+	if len(flag.Args()) < 1 || *help {
 		fmt.Println("Usage: nvcat [options] <file>")
 		flag.PrintDefaults()
 		os.Exit(1)
