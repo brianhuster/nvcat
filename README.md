@@ -4,7 +4,7 @@ A command-line utility that displays files with Neovim's syntax highlighting in 
 
 ## Overview
 
-`nvcat` (En-vee-cat) is a tool similar to Unix's `cat` but with syntax highlighting powered by Neovim's syntax and treesitter engines. It leverages Neovim's capabilities to provide accurate syntax highlighting for a wide range of file formats directly in your terminal.
+`nvcat` (En-vee-cat) is a CLI tool similar to Unix's `cat` but with syntax highlighting powered by Neovim's syntax and treesitter engines. It leverages Neovim's capabilities to provide accurate syntax highlighting for a wide range of file formats directly in your terminal.
 
 ## Features
 
@@ -15,6 +15,10 @@ A command-line utility that displays files with Neovim's syntax highlighting in 
 
 ## Installation
 
+- Prequisites: Neovim (accessible via `nvim`)
+
+### From source
+
 ```bash
 go install github.com/brianhuster/nvimcat@latest
 ```
@@ -22,9 +26,9 @@ go install github.com/brianhuster/nvimcat@latest
 Or clone and build manually:
 
 ```bash
-git clone https://github.com/yourusername/nvimcat.git
-cd nvimcat
-go build
+git clone https://github.com/brianhuster/nvcat.git
+cd nvcat
+sudo make install
 ```
 
 ## Usage
