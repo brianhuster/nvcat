@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"strconv"
 )
 
 const (
@@ -19,7 +20,8 @@ const (
 
 var (
 	lineNumbers = flag.Bool("n", false, "Show line numbers")
-	theme       = flag.String("theme", "default", "Neovim colorscheme to use")
+	clean       = flag.Bool("clean", false, "Use a clean Neovim instance")
+	tab = ""
 )
 
 func main() {
@@ -38,27 +40,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	vim, err := nvim.NewChildProcess(nvim.ChildProcessArgs("--embed", "--headless"))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error starting Neovim: %v\n", err)
-		os.Exit(1)
-	}
-	defer vim.Close()
-
-	vim.Command(fmt.Sprintf("colorscheme %s", *theme))
-	err = vim.Command(fmt.Sprintf("edit %s", absFilename))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error opening file: %v\n", err)
-		os.Exit(1)
-	}
-
-	var buffer nvim.Buffer
-	buffer, err = vim.CurrentBuffer()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error getting current buffer: %v\n", err)
-		os.Exit(1)
-	}
-
 	fileContent, err := os.ReadFile(filename)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
@@ -67,12 +48,62 @@ func main() {
 
 	lines := strings.Split(string(fileContent), "\n")
 
-	var filetype string
-	vim.BufferOption(buffer, "filetype", &filetype)
+	var args = []string{"--embed", "--headless"}
+	if *clean {
+		args = append(args, "--clean")
+	}
+	vim, err := nvim.NewChildProcess(nvim.ChildProcessArgs(args...))
 
-	fmt.Printf("%s%s%s (%s)\n", Bold, filename, Reset, filetype)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error starting Neovim: %v\n", err)
+		os.Exit(1)
+	}
+	defer vim.Close()
 
+	vim.RegisterHandler("redraw", func(args []any) {})
+	vim.AttachUI(2 * len(lines), 80, map[string]any{})
+
+	err = vim.ExecLua(`
+	local joinpath = vim.fs.joinpath
+	local config_dir = joinpath(vim.fn.fnamemodify(vim.fn.stdpath('config'), ':h'), 'nvcat')
+	vim.opt.rtp:append(config_dir)
+	if vim.fn.filereadable(joinpath(config_dir, 'init.lua')) == 1 then
+		vim.cmd.source(joinpath(config_dir, 'init.lua'))
+		return
+	end
+	if vim.fn.filereadable(joinpath(config_dir, 'init.vim')) == 1 then
+		vim.cmd.source(joinpath(config_dir, 'init.vim'))
+	end
+	`, nil, nil)
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
+	}
+
+	var expandtab bool
+	var tabstop int
+
+	err = vim.OptionValue("expandtab", map[string]nvim.OptionValueScope{}, &expandtab)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error getting expandtab option: %v\n", err)
+		os.Exit(1)
+	}
+
+	err = vim.OptionValue("tabstop", map[string]nvim.OptionValueScope{}, &tabstop)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error getting tabstop option: %v\n", err)
+		os.Exit(1)
+	}
+	tab = strings.Repeat(" ", tabstop)
+
+	fmt.Printf("%s%s%s\n", Bold, filename, Reset)
 	fmt.Println(strings.Repeat("─", 40))
+
+	err = vim.Command(fmt.Sprintf("edit %s", absFilename))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error opening file: %v\n", err)
+		os.Exit(1)
+	}
 
 	processFile(vim, lines)
 }
@@ -82,10 +113,12 @@ func processFile(vim *nvim.Nvim, lines []string) {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: Could not load highlight definitions: %v\n", err)
 	}
+	numDigits := len(fmt.Sprintf("%d", len(lines)))
 	for i, line := range lines {
 		linePrefix := ""
 		if *lineNumbers {
-			linePrefix = fmt.Sprintf("%s%4d %s", Dim, i+1, Reset)
+			format := "%s%" + strconv.Itoa(numDigits) + "d %s"
+			linePrefix = fmt.Sprintf(format, Dim, i+1, Reset)
 		}
 		if len(line) == 0 {
 			fmt.Println(linePrefix)
@@ -97,6 +130,7 @@ func processFile(vim *nvim.Nvim, lines []string) {
 			fmt.Println(linePrefix + line)
 			continue
 		}
+		highlightedLine = strings.ReplaceAll(highlightedLine, "\t", tab)
 		fmt.Println(linePrefix + highlightedLine)
 	}
 }
@@ -110,10 +144,10 @@ func loadHighlightDefinitions(vim *nvim.Nvim) error {
 			if hl_id == 0 then
 				return vim.empty_dict()
 			end
-			return vim.api.nvim_get_hl(0, { id = hl_id, link = false })
+			return vim.api.nvim_get_hl(0, { id = hl_id, link = false, create = false })
 		end
-		local hl_id = captures[#captures].id
-		return vim.api.nvim_get_hl(0, { id = hl_id, link = false })
+		local hl_name = '@' .. captures[#captures].capture
+		return vim.api.nvim_get_hl(0, { name = hl_name, link = false, create = false })
 	end
 	`
 	return vim.ExecLua(script, nil, nil)

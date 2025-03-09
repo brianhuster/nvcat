@@ -1,3 +1,4 @@
 nvcat
 test.lua
 __debug**
+.fuse_hidden*
