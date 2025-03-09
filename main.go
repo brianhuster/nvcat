@@ -22,7 +22,7 @@ var (
 	lineNumbers = flag.Bool("n", false, "Show line numbers")
 	clean       = flag.Bool("clean", false, "Use a clean Neovim instance")
 	help        = flag.Bool("h", false, "Show help")
-	tab = ""
+	tab         string
 )
 
 func main() {
@@ -62,6 +62,7 @@ func main() {
 	defer vim.Close()
 
 	vim.RegisterHandler("redraw", func(args []any) {})
+	vim.RegisterHandler("Gui", func(args []any) {})
 	vim.AttachUI(2 * len(lines), 80, map[string]any{})
 
 	err = vim.ExecLua(`
@@ -96,9 +97,6 @@ func main() {
 		os.Exit(1)
 	}
 	tab = strings.Repeat(" ", tabstop)
-
-	fmt.Printf("%s%s%s\n", Bold, filename, Reset)
-	fmt.Println(strings.Repeat("─", 40))
 
 	err = vim.Command(fmt.Sprintf("edit %s", absFilename))
 	if err != nil {
