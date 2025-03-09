@@ -10,11 +10,11 @@ import (
 )
 
 const (
-	reset     = "\033[0m"
-	bold      = "\033[1m"
-	dim       = "\033[2m"
-	italic    = "\033[3m"
-	underline = "\033[4m"
+	Reset     = "\033[0m"
+	Bold      = "\033[1m"
+	Dim       = "\033[2m"
+	Italic    = "\033[3m"
+	Underline = "\033[4m"
 )
 
 var (
@@ -38,7 +38,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	vim, err := nvim.NewChildProcess(nvim.ChildProcessArgs("-u", "NONE", "--embed", "--headless"))
+	vim, err := nvim.NewChildProcess(nvim.ChildProcessArgs("--embed", "--headless"))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error starting Neovim: %v\n", err)
 		os.Exit(1)
@@ -70,7 +70,7 @@ func main() {
 	var filetype string
 	vim.BufferOption(buffer, "filetype", &filetype)
 
-	fmt.Printf("%s%s%s (%s)\n", bold, filename, reset, filetype)
+	fmt.Printf("%s%s%s (%s)\n", Bold, filename, Reset, filetype)
 
 	fmt.Println(strings.Repeat("─", 40))
 
@@ -85,7 +85,7 @@ func processFile(vim *nvim.Nvim, lines []string) {
 	for i, line := range lines {
 		linePrefix := ""
 		if *lineNumbers {
-			linePrefix = fmt.Sprintf("%s%4d %s", dim, i+1, reset)
+			linePrefix = fmt.Sprintf("%s%4d %s", Dim, i+1, Reset)
 		}
 		if len(line) == 0 {
 			fmt.Println(linePrefix)
@@ -119,39 +119,35 @@ func loadHighlightDefinitions(vim *nvim.Nvim) error {
 	return vim.ExecLua(script, nil, nil)
 }
 
-func rgbToAnsi(color int) string {
+func rgbToAnsi(color uint64) string {
 	r := uint8((color >> 16) & 0xFF)
 	g := uint8((color >> 8) & 0xFF)
 	b := uint8(color & 0xFF)
 	return fmt.Sprintf("\x1b[38;2;%d;%d;%dm", r, g, b)
 }
 
-func getHighlightColor(vim *nvim.Nvim, hl map[string]any) (string, error) {
+func getHighlightColor(hl map[string]any) (string, error) {
 	var ansiCode strings.Builder
 
-	if fg, ok := hl["fg"].(string); ok && fg != "" {
-		var hexColor int
-		hexColor, err := vim.ColorByName(fg)
-		if err == nil {
-			if ansi := rgbToAnsi(hexColor); ansi != "" {
-				ansiCode.WriteString(ansi)
-			}
+	if fg, ok := hl["fg"].(uint64); ok {
+		if ansi := rgbToAnsi(fg); ansi != "" {
+			ansiCode.WriteString(ansi)
 		}
 	}
 
-	if bold, ok := hl["bold"].(string); ok && bold == "1" {
-		ansiCode.WriteString(bold)
+	if bold, ok := hl["bold"].(bool); ok && bold == true {
+		ansiCode.WriteString(Bold)
 	}
-	if italic, ok := hl["italic"].(string); ok && italic == "1" {
-		ansiCode.WriteString(italic)
+	if italic, ok := hl["italic"].(bool); ok && italic == true {
+		ansiCode.WriteString(Italic)
 	}
-	if underline, ok := hl["underline"].(string); ok && underline == "1" {
-		ansiCode.WriteString(underline)
+	if underline, ok := hl["underline"].(bool); ok && underline == true {
+		ansiCode.WriteString(Underline)
 	}
 
 	result := ansiCode.String()
 	if result == "" {
-		result = reset
+		result = Reset
 	}
 	return result, nil
 }
@@ -165,17 +161,17 @@ func getHighlightedLine(vim *nvim.Nvim, lineNum int, line string) (string, error
 		err := vim.ExecLua("return GetHl(...)", &hl, lineNum, col)
 		if err != nil {
 			if currentAnsi != "" {
-				highlightedLine.WriteString(reset)
+				highlightedLine.WriteString(Reset)
 				currentAnsi = ""
 			}
 			highlightedLine.WriteByte(line[col])
 			continue
 		}
 
-		ansi, err := getHighlightColor(vim, hl)
+		ansi, err := getHighlightColor(hl)
 		if err != nil {
 			if currentAnsi != "" {
-				highlightedLine.WriteString(reset)
+				highlightedLine.WriteString(Reset)
 				currentAnsi = ""
 			}
 			highlightedLine.WriteByte(line[col])
@@ -185,7 +181,7 @@ func getHighlightedLine(vim *nvim.Nvim, lineNum int, line string) (string, error
 		// Update ANSI escape sequence only if it changed
 		if ansi != currentAnsi {
 			if currentAnsi != "" {
-				highlightedLine.WriteString(reset)
+				highlightedLine.WriteString(Reset)
 			}
 			highlightedLine.WriteString(ansi)
 			currentAnsi = ansi
@@ -196,7 +192,7 @@ func getHighlightedLine(vim *nvim.Nvim, lineNum int, line string) (string, error
 
 	// Reset color at the end of the line
 	if currentAnsi != "" {
-		highlightedLine.WriteString(reset)
+		highlightedLine.WriteString(Reset)
 	}
 
 	return highlightedLine.String(), nil
