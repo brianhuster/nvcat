@@ -136,7 +136,7 @@ func processFile(vim *nvim.Nvim, lines []string) {
 
 func loadHighlightDefinitions(vim *nvim.Nvim) error {
 	script := `
-	function GetHl(row, col)
+	function NvcatGetHl(row, col)
 		local captures = vim.treesitter.get_captures_at_pos(0, row, col)
 		if #captures == 0 then
 			local hl_id = vim.fn.synID(row + 1, col + 1, 1)
@@ -191,7 +191,7 @@ func getHighlightedLine(vim *nvim.Nvim, lineNum int, line string) (string, error
 
 	for col := range len(line) {
 		var hl map[string]any
-		err := vim.ExecLua("return GetHl(...)", &hl, lineNum, col)
+		err := vim.ExecLua("return NvcatGetHl(...)", &hl, lineNum, col)
 		if err != nil {
 			if currentAnsi != "" {
 				highlightedLine.WriteString(Reset)
