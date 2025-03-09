@@ -15,7 +15,9 @@ A command-line utility that displays files with Neovim's syntax highlighting in 
 
 ## Installation
 
-- Prequisites: Neovim 0.10+ (must be accessible via `nvim`)
+**Prequisites**:
+- Neovim 0.10+ (must be accessible via `nvim`)
+- A terminal that supports true color
 
 ### Prebuilt binaries
 

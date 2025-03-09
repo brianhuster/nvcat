@@ -18,17 +18,33 @@ const (
 	Underline = "\033[4m"
 )
 
-var (
-	lineNumbers = flag.Bool("n", false, "Show line numbers")
-	clean       = flag.Bool("clean", false, "Use a clean Neovim instance")
-	help        = flag.Bool("h", false, "Show help")
-	tab         string
-)
+type nvcatCliFlags struct {
+	lineNumbers *bool
+	clean       *bool
+	help        *bool
+	version     *bool
+}
+
+type formatOpts struct {
+	tab string
+}
+
+var cliFlags = nvcatCliFlags{
+	lineNumbers: flag.Bool("n", false, "Show line numbers"),
+	clean:       flag.Bool("clean", false, "Use a clean Neovim instance"),
+	help:        flag.Bool("h", false, "Show help"),
+	version:     flag.Bool("v", false, "Show version"),
+}
 
 func main() {
 	flag.Parse()
 
-	if len(flag.Args()) < 1 || *help {
+	if *cliFlags.version {
+		fmt.Println("nvcat v0.1.1")
+		os.Exit(0)
+	}
+
+	if len(flag.Args()) < 1 || *cliFlags.help {
 		fmt.Println("Usage: nvcat [options] <file>")
 		flag.PrintDefaults()
 		os.Exit(1)
@@ -40,7 +56,6 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error resolving path: %v\n", err)
 		os.Exit(1)
 	}
-
 	fileContent, err := os.ReadFile(filename)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
@@ -50,7 +65,7 @@ func main() {
 	lines := strings.Split(string(fileContent), "\n")
 
 	var args = []string{"--embed", "--headless"}
-	if *clean {
+	if *cliFlags.clean {
 		args = append(args, "--clean")
 	}
 	vim, err := nvim.NewChildProcess(nvim.ChildProcessArgs(args...))
@@ -96,7 +111,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error getting tabstop option: %v\n", err)
 		os.Exit(1)
 	}
-	tab = strings.Repeat(" ", tabstop)
+	tab := strings.Repeat(" ", tabstop)
 
 	err = vim.Command(fmt.Sprintf("edit %s", absFilename))
 	if err != nil {
@@ -104,33 +119,31 @@ func main() {
 		os.Exit(1)
 	}
 
-	processFile(vim, lines)
+	processFile(vim, lines, formatOpts { tab: tab })
 }
 
-func processFile(vim *nvim.Nvim, lines []string) {
+func processFile(vim *nvim.Nvim, lines []string, opts formatOpts) {
 	err := loadHighlightDefinitions(vim)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: Could not load highlight definitions: %v\n", err)
 	}
 	numDigits := len(fmt.Sprintf("%d", len(lines)))
 	for i, line := range lines {
-		linePrefix := ""
-		if *lineNumbers {
-			format := "%s%" + strconv.Itoa(numDigits) + "d %s"
-			linePrefix = fmt.Sprintf(format, Dim, i+1, Reset)
+		if *cliFlags.lineNumbers {
+			fmt.Fprint(os.Stderr, Dim)
+			fmt.Fprint(os.Stdout, fmt.Sprintf("%" + strconv.Itoa(numDigits) + "d ", i+1))
+			fmt.Fprint(os.Stderr, Reset)
 		}
 		if len(line) == 0 {
-			fmt.Println(linePrefix)
+			fmt.Fprintln(os.Stdout, "")
 			continue
 		}
-		highlightedLine, err := getHighlightedLine(vim, i, line)
+		_, err := getHighlightedLine(vim, i, line, opts)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error getting highlights for line %d: %v\n", i+1, err)
-			fmt.Println(linePrefix + line)
-			continue
+			fmt.Fprintln(os.Stdout, line)
 		}
-		highlightedLine = strings.ReplaceAll(highlightedLine, "\t", tab)
-		fmt.Println(linePrefix + highlightedLine)
+		fmt.Fprintln(os.Stdout, "")
 	}
 }
 
@@ -138,15 +151,15 @@ func loadHighlightDefinitions(vim *nvim.Nvim) error {
 	script := `
 	function NvcatGetHl(row, col)
 		local captures = vim.treesitter.get_captures_at_pos(0, row, col)
-		if #captures == 0 then
-			local hl_id = vim.fn.synID(row + 1, col + 1, 1)
-			if hl_id == 0 then
-				return vim.empty_dict()
-			end
-			return vim.api.nvim_get_hl(0, { id = hl_id, link = false, create = false })
+		if #captures > 0 then
+			local hl_name = '@' .. captures[#captures].capture
+			return vim.api.nvim_get_hl(0, { name = hl_name, link = false, create = false })
 		end
-		local hl_name = '@' .. captures[#captures].capture
-		return vim.api.nvim_get_hl(0, { name = hl_name, link = false, create = false })
+		local hl_id = vim.fn.synID(row + 1, col + 1, 1)
+		if hl_id == 0 then
+			return vim.empty_dict()
+		end
+		return vim.api.nvim_get_hl(0, { id = hl_id, link = false, create = false })
 	end
 	`
 	return vim.ExecLua(script, nil, nil)
@@ -185,48 +198,51 @@ func getHighlightColor(hl map[string]any) (string, error) {
 	return result, nil
 }
 
-func getHighlightedLine(vim *nvim.Nvim, lineNum int, line string) (string, error) {
-	var highlightedLine strings.Builder
+func getHighlightedLine(vim *nvim.Nvim, lineNum int, line string, opts formatOpts) (string, error) {
 	var currentAnsi string
 
 	for col := range len(line) {
 		var hl map[string]any
+		if line[col] == '\t' {
+			fmt.Fprint(os.Stdout, opts.tab)
+			continue
+		}
 		err := vim.ExecLua("return NvcatGetHl(...)", &hl, lineNum, col)
 		if err != nil {
 			if currentAnsi != "" {
-				highlightedLine.WriteString(Reset)
+				fmt.Fprint(os.Stderr, Reset)
 				currentAnsi = ""
 			}
-			highlightedLine.WriteByte(line[col])
+			fmt.Fprint(os.Stdout, string(line[col]))
 			continue
 		}
 
 		ansi, err := getHighlightColor(hl)
 		if err != nil {
 			if currentAnsi != "" {
-				highlightedLine.WriteString(Reset)
+				fmt.Fprint(os.Stderr, Reset)
 				currentAnsi = ""
 			}
-			highlightedLine.WriteByte(line[col])
+			fmt.Fprint(os.Stdout, string(line[col]))
 			continue
 		}
 
 		// Update ANSI escape sequence only if it changed
 		if ansi != currentAnsi {
 			if currentAnsi != "" {
-				highlightedLine.WriteString(Reset)
+				fmt.Fprint(os.Stderr, Reset)
 			}
-			highlightedLine.WriteString(ansi)
+			fmt.Fprint(os.Stderr, ansi)
 			currentAnsi = ansi
 		}
 
-		highlightedLine.WriteByte(line[col])
+		fmt.Fprint(os.Stdout, string(line[col]))
 	}
 
 	// Reset color at the end of the line
 	if currentAnsi != "" {
-		highlightedLine.WriteString(Reset)
+		fmt.Fprint(os.Stderr, Reset)
 	}
 
-	return highlightedLine.String(), nil
+	return "", nil
 }
