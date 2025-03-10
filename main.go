@@ -12,18 +12,18 @@ import (
 )
 
 const (
-	Reset     = "\033[0m"
-	Bold      = "\033[1m"
-	Dim       = "\033[2m"
-	Italic    = "\033[3m"
-	Underline = "\033[4m"
+	AnsiReset     = "\033[0m"
+	AnsiBold      = "\033[1m"
+	AnsiDim       = "\033[2m"
+	AnsiItalic    = "\033[3m"
+	AnsiUnderline = "\033[4m"
 )
 
 type nvcatCliFlags struct {
-	lineNumbers *bool
-	clean       *bool
-	help        *bool
-	version     *bool
+	number  *bool
+	clean   *bool
+	help    *bool
+	version *bool
 }
 
 type formatOpts struct {
@@ -31,7 +31,7 @@ type formatOpts struct {
 }
 
 var cliFlags = nvcatCliFlags{
-	lineNumbers: flag.Bool("n", false, "Show line numbers"),
+	number: flag.Bool("n", false, "Show line numbers"),
 	clean:       flag.Bool("clean", false, "Use a clean Neovim instance"),
 	help:        flag.Bool("h", false, "Show help"),
 	version:     flag.Bool("v", false, "Show version"),
@@ -127,10 +127,10 @@ func main() {
 func processFile(vim *nvim.Nvim, lines []string, opts formatOpts) {
 	numDigits := len(fmt.Sprintf("%d", len(lines)))
 	for i, line := range lines {
-		if *cliFlags.lineNumbers {
-			fmt.Fprint(os.Stderr, Dim)
+		if *cliFlags.number {
+			fmt.Fprint(os.Stderr, AnsiDim)
 			fmt.Fprint(os.Stdout, fmt.Sprintf("%" + strconv.Itoa(numDigits) + "d ", i+1))
-			fmt.Fprint(os.Stderr, Reset)
+			fmt.Fprint(os.Stderr, AnsiReset)
 		}
 		if len(line) == 0 {
 			fmt.Fprintln(os.Stdout, "")
@@ -162,18 +162,18 @@ func getHighlightColor(hl map[string]any) (string, error) {
 	}
 
 	if bold, ok := hl["bold"].(bool); ok && bold == true {
-		ansiCode.WriteString(Bold)
+		ansiCode.WriteString(AnsiBold)
 	}
 	if italic, ok := hl["italic"].(bool); ok && italic == true {
-		ansiCode.WriteString(Italic)
+		ansiCode.WriteString(AnsiItalic)
 	}
 	if underline, ok := hl["underline"].(bool); ok && underline == true {
-		ansiCode.WriteString(Underline)
+		ansiCode.WriteString(AnsiUnderline)
 	}
 
 	result := ansiCode.String()
 	if result == "" {
-		result = Reset
+		result = AnsiReset
 	}
 	return result, nil
 }
@@ -190,7 +190,7 @@ func getHighlightedLine(vim *nvim.Nvim, lineNum int, line string, opts formatOpt
 		err := vim.ExecLua("return NvcatGetHl(...)", &hl, lineNum, col)
 		if err != nil {
 			if currentAnsi != "" {
-				fmt.Fprint(os.Stderr, Reset)
+				fmt.Fprint(os.Stderr, AnsiReset)
 				currentAnsi = ""
 			}
 			fmt.Fprint(os.Stdout, string(line[col]))
@@ -200,7 +200,7 @@ func getHighlightedLine(vim *nvim.Nvim, lineNum int, line string, opts formatOpt
 		ansi, err := getHighlightColor(hl)
 		if err != nil {
 			if currentAnsi != "" {
-				fmt.Fprint(os.Stderr, Reset)
+				fmt.Fprint(os.Stderr, AnsiReset)
 				currentAnsi = ""
 			}
 			fmt.Fprint(os.Stdout, string(line[col]))
@@ -210,7 +210,7 @@ func getHighlightedLine(vim *nvim.Nvim, lineNum int, line string, opts formatOpt
 		// Update ANSI escape sequence only if it changed
 		if ansi != currentAnsi {
 			if currentAnsi != "" {
-				fmt.Fprint(os.Stderr, Reset)
+				fmt.Fprint(os.Stderr, AnsiReset)
 			}
 			fmt.Fprint(os.Stderr, ansi)
 			currentAnsi = ansi
@@ -221,7 +221,7 @@ func getHighlightedLine(vim *nvim.Nvim, lineNum int, line string, opts formatOpt
 
 	// Reset color at the end of the line
 	if currentAnsi != "" {
-		fmt.Fprint(os.Stderr, Reset)
+		fmt.Fprint(os.Stderr, AnsiReset)
 	}
 
 	return "", nil

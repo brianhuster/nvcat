@@ -51,31 +51,43 @@ Run `nvcat -h` for more information.
 
 You can configure Nvcat using Vimscript or Lua just the same as you would with Neovim. However, it is recommended to start from a scratch config, because LSP, plugins can cause unnecessary long startup time and other unexpected behaviors. Generally you would only need to set colorscheme, tabstop, or enable Treesitter highlighting
 
-Nvcat configuration should be put in `$XDG_CONFIG_HOME/nvim/init.lua` or `$XDG_CONFIG_HOME/nvim/init.vim`. Unlike Neovim configuration, Nvcat configuration is always loaded by Nvcat no matter if you use flag `-clean` or not.
+There are 2 ways to configure Nvcat:
 
-On startup, Nvcat will set the variable `g:nvcat` to the current version of Nvcat. So you can also use this variable to set Nvcat-specific configurations without havin to put it in a different location than Neovim configuration.
+#### 1. Use Nvcat's config directory: `$XDG_CONFIG_HOME/nvcat/init.lua` or `$XDG_CONFIG_HOME/nvcat/init.vim`. 
+
+With this method, your Nvcat configuration will be seperated from your Neovim configuration, and it can be loaded even when the flag `-clean` is given
+
+Example:
+```lua
+--- ~/.config/nvcat/init.lua
+vim.opt.rtp:append(path/to/your/colorscheme/runtimepath)
+-- Add runtimepath directory containing 'parser/<your-treesitter-parsers>'
+vim.opt.rtp:append("replace/with/your/actual/path")
+
+vim.cmd.colorscheme("your-colorscheme")
+vim.o.tabstop = 4
+
+vim.api.nvim_create_autocmd("BufRead", {
+    callback = function()
+        local ok = pcall(vim.treesitter.start)
+        if not ok then
+            vim.cmd.syntax("on")
+        end
+    end
+})
+```
+
+#### 2. Use Neovim's config dictionary (`:echo stdpath('config')`).
+
+Nvcat sets Vimscript variable `g:nvcat` on startup, so you can use it to control which parts of your Neovim configuration should not be used by Nvcat.
 
 Example:
 ```lua
 --- ~/.config/nvim/init.lua
-if not vim.g.nvcat then
-    -- Load LSP, plugins, etc.
+if vim.g.nvcat then
+    -- Nvcat configuration
 else
-    vim.opt.rtp:append(path/to/your/colorscheme/runtimepath)
-    -- Add runtimepath directory containing 'parser/<your-treesitter-parsers>'
-    vim.opt.rtp:append("replace/with/your/actual/path")
-
-    vim.cmd.colorscheme("your-colorscheme")
-    vim.o.tabstop = 4
-
-    vim.api.nvim_create_autocmd("BufRead", {
-        callback = function()
-            local ok = pcall(vim.treesitter.start)
-            if not ok then
-                vim.cmd.syntax("on")
-            end
-        end
-    })
+    -- LSP, plugins, etc.
 end
 ```
 
@@ -92,3 +104,7 @@ end
 <a href="https://img.vietqr.io/image/mb-9704229209586831984-print.png?addInfo=Donate%20for%20livepreview%20plugin%20nvim&accountName=PHAM%20BINH%20AN">
     <img src="https://github.com/user-attachments/assets/f28049dc-ce7c-4975-a85e-be36612fd061" alt="VietQR" style="height: 85px;">
 </a>
+
+## Credits
+
+- [neovim/go-client](https://github.com/neovim/go-client)
