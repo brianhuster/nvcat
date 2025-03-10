@@ -37,7 +37,7 @@ var cliFlags = nvcatCliFlags{
 	version:     flag.Bool("v", false, "Show version"),
 }
 
-//go:embed init.lua
+//go:embed lua/init.lua
 var initLuaScript string
 
 var Version = "dev"
@@ -70,11 +70,12 @@ func main() {
 
 	lines := strings.Split(string(fileContent), "\n")
 
-	var args = []string{"--embed", "--headless"}
+	var args = []string{"--cmd", fmt.Sprintf("let g:nvcat = '%s'", Version), "--embed", "--headless"}
 	if *cliFlags.clean {
 		args = append(args, "--clean")
 	}
 	vim, err := nvim.NewChildProcess(nvim.ChildProcessArgs(args...))
+	vim.SetVar("nvcat", Version)
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error starting Neovim: %v\n", err)
