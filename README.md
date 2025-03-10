@@ -13,6 +13,9 @@ A command-line utility that displays files with Neovim's syntax highlighting in 
 - Optional line numbers
 - Can use your existing Neovim configuration or run with a clean instance
 
+![image](https://github.com/user-attachments/assets/cfc76a64-e0da-4ac1-8860-cf14a091e9fc)
+> Viewing a Lua file with Nvcat using [tokyonight-night](https://github.com/folke/tokyonight.nvim) colorscheme
+
 ## Installation
 
 **Prequisites**:
