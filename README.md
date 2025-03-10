@@ -13,6 +13,28 @@ A command-line utility that displays files with Neovim's syntax highlighting in 
 - Optional line numbers
 - Can use your existing Neovim configuration or run with a clean instance
 
+<table width="100%">
+  <tr>
+    <td width="600px">
+      <img src="https://github.com/user-attachments/assets/cfc76a64-e0da-4ac1-8860-cf14a091e9fc" />
+    </td>
+  </tr>
+  <tr>
+    <th>Viewing a Lua file with <a href="https://github.com/folke/tokyonight.nvim">Tokyonight-night colorscheme</a></th>
+  </tr>
+  <tr>
+    <td width="600px">
+      <img src="https://github.com/user-attachments/assets/79d53df0-6fcc-4ada-a36d-42179e447bd3" />
+    </td>      
+  </tr>
+  <tr>
+    <th>
+      Nvcat as <a href="https://github.com/junegunn/fzf">fzf</a>'s preview, with my custom 
+      <a href="https://github.com/brianhuster/dotfiles/blob/5e7aed6/nvim/colors/an.lua">colorscheme</a>.
+    </th>
+  </tr>
+</table>
+
 ## Installation
 
 **Prequisites**:
