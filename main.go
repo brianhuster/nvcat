@@ -89,10 +89,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	vim.RegisterHandler("redraw", func(args []any) {})
-	vim.RegisterHandler("Gui", func(args []any) {})
-	vim.AttachUI(2 * len(lines), 80, map[string]any{})
-
 	err = vim.ExecLua(initLuaScript, nil, nil)
 
 	if err != nil {
@@ -121,10 +117,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	processFile(vim, lines, formatOpts { tab: tab })
+	printLines(vim, lines, formatOpts { tab: tab })
 }
 
-func processFile(vim *nvim.Nvim, lines []string, opts formatOpts) {
+func printLines(vim *nvim.Nvim, lines []string, opts formatOpts) {
 	numDigits := len(fmt.Sprintf("%d", len(lines)))
 	for i, line := range lines {
 		if *cliFlags.number {
@@ -136,7 +132,7 @@ func processFile(vim *nvim.Nvim, lines []string, opts formatOpts) {
 			fmt.Fprintln(os.Stdout, "")
 			continue
 		}
-		_, err := getHighlightedLine(vim, i, line, opts)
+		_, err := printHighlightedLine(vim, i, line, opts)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error getting highlights for line %d: %v\n", i+1, err)
 			fmt.Fprintln(os.Stdout, line)
@@ -152,7 +148,7 @@ func rgbToAnsi(color uint64) string {
 	return fmt.Sprintf("\x1b[38;2;%d;%d;%dm", r, g, b)
 }
 
-func getHighlightColor(hl map[string]any) (string, error) {
+func getAnsiFromHl(hl map[string]any) (string, error) {
 	var ansiCode strings.Builder
 
 	if fg, ok := hl["fg"].(uint64); ok {
@@ -178,7 +174,7 @@ func getHighlightColor(hl map[string]any) (string, error) {
 	return result, nil
 }
 
-func getHighlightedLine(vim *nvim.Nvim, lineNum int, line string, opts formatOpts) (string, error) {
+func printHighlightedLine(vim *nvim.Nvim, lineNum int, line string, opts formatOpts) (string, error) {
 	var currentAnsi string
 
 	for col := range len(line) {
@@ -197,7 +193,7 @@ func getHighlightedLine(vim *nvim.Nvim, lineNum int, line string, opts formatOpt
 			continue
 		}
 
-		ansi, err := getHighlightColor(hl)
+		ansi, err := getAnsiFromHl(hl)
 		if err != nil {
 			if currentAnsi != "" {
 				fmt.Fprint(os.Stderr, AnsiReset)

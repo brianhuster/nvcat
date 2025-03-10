@@ -53,7 +53,7 @@ You can configure Nvcat using Vimscript or Lua just the same as you would with N
 
 There are 2 ways to configure Nvcat:
 
-#### 1. Use Nvcat's config directory: `$XDG_CONFIG_HOME/nvcat/init.lua` or `$XDG_CONFIG_HOME/nvcat/init.vim`. 
+#### 1. Use Nvcat's config directory: `$XDG_CONFIG_HOME/nvcat/init.lua` or `$XDG_CONFIG_HOME/nvcat/init.vim`.
 
 With this method, your Nvcat configuration will be seperated from your Neovim configuration, and it can be loaded even when the flag `-clean` is given
 
@@ -67,12 +67,9 @@ vim.opt.rtp:append("replace/with/your/actual/path")
 vim.cmd.colorscheme("your-colorscheme")
 vim.o.tabstop = 4
 
-vim.api.nvim_create_autocmd("BufRead", {
+vim.api.nvim_create_autocmd("FileType", {
     callback = function()
-        local ok = pcall(vim.treesitter.start)
-        if not ok then
-            vim.cmd.syntax("on")
-        end
+        pcall(vim.treesitter.start)
     end
 })
 ```
