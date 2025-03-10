@@ -75,7 +75,6 @@ func main() {
 		args = append(args, "--clean")
 	}
 	vim, err := nvim.NewChildProcess(nvim.ChildProcessArgs(args...))
-	vim.SetVar("nvcat", Version)
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error starting Neovim: %v\n", err)
