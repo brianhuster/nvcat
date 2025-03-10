@@ -74,7 +74,7 @@ func main() {
 	if *cliFlags.clean {
 		args = append(args, "--clean")
 	}
-	args = append(args, "-c", fmt.Sprintf("let g:nvcat = '%s'", Version))
+	args = append(args, "--cmd", fmt.Sprintf("let g:nvcat = '%s'", Version))
 	vim, err := nvim.NewChildProcess(nvim.ChildProcessArgs(args...))
 
 	if err != nil {
