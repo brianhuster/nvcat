@@ -37,7 +37,7 @@ var cliFlags = nvcatCliFlags{
 	version:     flag.Bool("v", false, "Show version"),
 }
 
-//go:embed init.lua
+//go:embed lua/init.lua
 var initLuaScript string
 
 var Version = "dev"
@@ -74,6 +74,7 @@ func main() {
 	if *cliFlags.clean {
 		args = append(args, "--clean")
 	}
+	args = append(args, "-c", fmt.Sprintf("let g:nvcat = '%s'", Version))
 	vim, err := nvim.NewChildProcess(nvim.ChildProcessArgs(args...))
 
 	if err != nil {

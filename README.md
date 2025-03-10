@@ -25,6 +25,8 @@ See the [releases page](https://github.com/brianhuster/nvcat/releases) for prebu
 
 ### From source
 
+Requires Go 1.22+
+
 ```bash
 go install github.com/brianhuster/nvimcat@latest
 ```
@@ -47,7 +49,32 @@ Run `nvcat -h` for more information.
 
 ## Configuration
 
-Nvcat configuration is basically the same as Neovim's configuration, you can put it in `$XDG_CONFIG_HOME/nvim/init.lua` or `$XDG_CONFIG_HOME/nvim/init.vim`. Unlike Neovim configuration, Nvcat configuration is always loaded by Nvcat no matter if you use flag `-clean` or not.
+You can configure Nvcat using Vimscript or Lua just the same as you would with Neovim. However, it is recommended to start from a scratch config, because LSP, plugins can cause unnecessary long startup time and other unexpected behaviors. Generally you would only need to set colorscheme, tabstop, or enable Treesitter highlighting
+
+Nvcat configuration should be put in `$XDG_CONFIG_HOME/nvim/init.lua` or `$XDG_CONFIG_HOME/nvim/init.vim`. Unlike Neovim configuration, Nvcat configuration is always loaded by Nvcat no matter if you use flag `-clean` or not.
+
+On startup, Nvcat will set the variable `g:nvcat` to the current version of Nvcat. So you can also use this variable to set Nvcat-specific configurations without havin to put it in a different location than Neovim configuration.
+
+Example:
+```lua
+--- ~/.config/nvim/init.lua
+if not vim.g.nvcat then
+    -- Load LSP, plugins, etc.
+else
+    vim.opt.rtp:append(path/to/your/colorscheme/plugin)
+    vim.opt.rtp:append(path/to/runtime/directory/containing/treesitter-parsers)
+    vim.cmd.colorscheme("your-colorscheme")
+    vim.o.tabstop = 4
+    vim.api.nvim_create_autocmd("BufRead", {
+        callback = function()
+            local ok = pcall(vim.treesitter.start)
+            if not ok then
+                vim.cmd.syntax("on")
+            end
+        end
+    })
+end
+```
 
 ## Limitations
 
