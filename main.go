@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	_ "embed"
 	"github.com/neovim/go-client/nvim"
 	"os"
 	"path/filepath"
@@ -36,11 +37,16 @@ var cliFlags = nvcatCliFlags{
 	version:     flag.Bool("v", false, "Show version"),
 }
 
+//go:embed init.lua
+var initLuaScript string
+
+var Version = "dev"
+
 func main() {
 	flag.Parse()
 
 	if *cliFlags.version {
-		fmt.Println("nvcat v0.1.1")
+		fmt.Println("nvcat " + Version)
 		os.Exit(0)
 	}
 
@@ -76,25 +82,21 @@ func main() {
 	}
 	defer vim.Close()
 
+	var validNvim int
+	vim.Call("has", &validNvim, "nvim-0.10")
+	if validNvim != 1 {
+		fmt.Fprintf(os.Stderr, "Error: nvcat requires nvim 0.10 or later\n")
+		os.Exit(1)
+	}
+
 	vim.RegisterHandler("redraw", func(args []any) {})
 	vim.RegisterHandler("Gui", func(args []any) {})
 	vim.AttachUI(2 * len(lines), 80, map[string]any{})
 
-	err = vim.ExecLua(`
-	local joinpath = vim.fs.joinpath
-	local config_dir = joinpath(vim.fn.fnamemodify(vim.fn.stdpath('config'), ':h'), 'nvcat')
-	vim.opt.rtp:append(config_dir)
-	if vim.fn.filereadable(joinpath(config_dir, 'init.lua')) == 1 then
-		vim.cmd.source(joinpath(config_dir, 'init.lua'))
-		return
-	end
-	if vim.fn.filereadable(joinpath(config_dir, 'init.vim')) == 1 then
-		vim.cmd.source(joinpath(config_dir, 'init.vim'))
-	end
-	`, nil, nil)
+	err = vim.ExecLua(initLuaScript, nil, nil)
 
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error loading config: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error loading Lua script: %v\n", err)
 	}
 
 	var expandtab bool
@@ -123,10 +125,6 @@ func main() {
 }
 
 func processFile(vim *nvim.Nvim, lines []string, opts formatOpts) {
-	err := loadHighlightDefinitions(vim)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: Could not load highlight definitions: %v\n", err)
-	}
 	numDigits := len(fmt.Sprintf("%d", len(lines)))
 	for i, line := range lines {
 		if *cliFlags.lineNumbers {
@@ -145,24 +143,6 @@ func processFile(vim *nvim.Nvim, lines []string, opts formatOpts) {
 		}
 		fmt.Fprintln(os.Stdout, "")
 	}
-}
-
-func loadHighlightDefinitions(vim *nvim.Nvim) error {
-	script := `
-	function NvcatGetHl(row, col)
-		local captures = vim.treesitter.get_captures_at_pos(0, row, col)
-		if #captures > 0 then
-			local hl_name = '@' .. captures[#captures].capture
-			return vim.api.nvim_get_hl(0, { name = hl_name, link = false, create = false })
-		end
-		local hl_id = vim.fn.synID(row + 1, col + 1, 1)
-		if hl_id == 0 then
-			return vim.empty_dict()
-		end
-		return vim.api.nvim_get_hl(0, { id = hl_id, link = false, create = false })
-	end
-	`
-	return vim.ExecLua(script, nil, nil)
 }
 
 func rgbToAnsi(color uint64) string {
