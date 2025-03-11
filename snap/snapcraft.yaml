@@ -1,0 +1,29 @@
+name: nvcat
+summary: Print files to the terminal with syntax highlighting
+description: |
+  nvcat is a command-line utility similar to Unix's cat but with
+  syntax highlighting powered by Neovim's syntax and treesitter engines.
+  It displays the contents of files with accurate syntax highlighting
+  for a wide range of file formats directly in your terminal.
+adopt-info: nvcat
+base: core22
+
+apps:
+  nvcat:
+    command: bin/nvcat
+    plugs:
+      - home
+      - removable-media
+
+confinement: classic
+
+parts:
+  nvcat:
+    plugin: go
+    build-snaps: [go/latest/stable]
+    source: https://github.com/brianhuster/nvcat
+    source-type: git
+    override-pull: |
+      snapcraftctl pull
+      snapcraftctl set-version \
+      "$(git describe --long --tags --always --match=v*.*.* | sed 's/v//')"

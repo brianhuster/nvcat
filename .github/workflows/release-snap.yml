@@ -1,0 +1,24 @@
+name: Release Snap
+
+on:
+  push:
+    tags:
+      - "*"
+
+jobs:
+  my-job:
+    runs-on: ubuntu-latest
+    env:
+      SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_TOKEN }}
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v3
+
+      - name: Install Snapcraft
+        uses: samuelmeuli/action-snapcraft@v3
+
+      # You can now run Snapcraft shell commands
+      - name: Push to Snap Store
+        run: |
+          snapcraft
+          snapcraft upload release=stable nvcat_*.snap

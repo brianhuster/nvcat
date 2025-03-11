@@ -67,7 +67,12 @@ sudo make install
 nvcat [options] <file>
 ```
 
-Run `nvcat -h` for more information.
+### Options
+
+* `-n`: Show line numbers
+* `-clean`: Don't load Neovim's config
+* `-v`: Show version information
+* `-h`: Show help information
 
 ## Configuration
 
