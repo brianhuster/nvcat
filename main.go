@@ -37,8 +37,8 @@ var cliFlags = nvcatCliFlags{
 	version:     flag.Bool("v", false, "Show version"),
 }
 
-//go:embed lua/init.lua
-var initLuaScript string
+//go:embed runtime/plugin/nvcat.lua
+var LuaPluginScript string
 
 var Version = "dev"
 
@@ -89,7 +89,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = vim.ExecLua(initLuaScript, nil, nil)
+	err = vim.ExecLua(LuaPluginScript, nil, nil)
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error loading Lua script: %v\n", err)
