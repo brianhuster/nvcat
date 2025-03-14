@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"strconv"
+	"bytes"
 )
 
 const (
@@ -65,6 +66,10 @@ func main() {
 	fileContent, err := os.ReadFile(filename)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
+		os.Exit(1)
+	}
+	if bytes.Contains(fileContent, []byte{0}) {
+		fmt.Fprintf(os.Stderr, "Binary files are not supported\n")
 		os.Exit(1)
 	}
 
