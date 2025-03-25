@@ -1,2 +1,6 @@
+github.com/clipperhouse/uax29 v1.14.3 h1:pJ0hZWycgsBrJ8SSsvPCrlMTpW8C+fdcA/0mehFDCU0=
+github.com/clipperhouse/uax29 v1.14.3/go.mod h1:paNABhygWmmjkg0ROxKQoenJAX4dM9AS8biVkXmAK0c=
 github.com/neovim/go-client v1.2.1 h1:kl3PgYgbnBfvaIoGYi3ojyXH0ouY6dJY/rYUCssZKqI=
 github.com/neovim/go-client v1.2.1/go.mod h1:EeqCP3z1vJd70JTaH/KXz9RMZ/nIgEFveX83hYnh/7c=
+golang.org/x/text v0.16.0 h1:a94ExnEXNtEwYLGJSIUxnWoxoRz/ZcCsV63ROupILh4=
+golang.org/x/text v0.16.0/go.mod h1:GhwF1Be+LQoKShO3cGOHzqOgRrGaYc9AvblQOmPVHnI=
