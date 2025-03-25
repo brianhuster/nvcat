@@ -1,15 +1,15 @@
 package main
 
 import (
+	"bytes"
+	_ "embed"
 	"flag"
 	"fmt"
-	_ "embed"
 	"github.com/neovim/go-client/nvim"
 	"os"
 	"path/filepath"
-	"strings"
 	"strconv"
-	"bytes"
+	"strings"
 )
 
 const (
@@ -32,10 +32,10 @@ type formatOpts struct {
 }
 
 var cliFlags = nvcatCliFlags{
-	number: flag.Bool("n", false, "Show line numbers"),
-	clean:       flag.Bool("clean", false, "Use a clean Neovim instance"),
-	help:        flag.Bool("h", false, "Show help"),
-	version:     flag.Bool("v", false, "Show version"),
+	number:  flag.Bool("n", false, "Show line numbers"),
+	clean:   flag.Bool("clean", false, "Use a clean Neovim instance"),
+	help:    flag.Bool("h", false, "Show help"),
+	version: flag.Bool("v", false, "Show version"),
 }
 
 //go:embed runtime/plugin/nvcat.lua
@@ -80,7 +80,6 @@ func main() {
 		args = append(args, "--clean")
 	}
 	vim, err := nvim.NewChildProcess(nvim.ChildProcessArgs(args...))
-
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error starting Neovim: %v\n", err)
 		os.Exit(1)
@@ -95,7 +94,6 @@ func main() {
 	}
 
 	err = vim.ExecLua(LuaPluginScript, nil, nil)
-
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error loading Lua script: %v\n", err)
 	}
@@ -122,7 +120,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	printLines(vim, lines, formatOpts { tab: tab })
+	printLines(vim, lines, formatOpts{tab: tab})
 }
 
 func printLines(vim *nvim.Nvim, lines []string, opts formatOpts) {
@@ -130,7 +128,7 @@ func printLines(vim *nvim.Nvim, lines []string, opts formatOpts) {
 	for i, line := range lines {
 		if *cliFlags.number {
 			fmt.Fprint(os.Stderr, AnsiDim)
-			fmt.Fprint(os.Stdout, fmt.Sprintf("%" + strconv.Itoa(numDigits) + "d ", i+1))
+			fmt.Fprint(os.Stdout, fmt.Sprintf("%"+strconv.Itoa(numDigits)+"d ", i+1))
 			fmt.Fprint(os.Stderr, AnsiReset)
 		}
 		if len(line) == 0 {
@@ -179,22 +177,25 @@ func getAnsiFromHl(hl map[string]any) (string, error) {
 	return result, nil
 }
 
+// Updated function to iterate over Unicode characters (runes)
 func printHighlightedLine(vim *nvim.Nvim, lineNum int, line string, opts formatOpts) (string, error) {
 	var currentAnsi string
 
-	for col := range len(line) {
-		var hl map[string]any
-		if line[col] == '\t' {
+	// Using range over the string yields the byte offset (col) and the rune (ch)
+	for byteOffset, ch := range line {
+		if ch == '\t' {
 			fmt.Fprint(os.Stdout, opts.tab)
 			continue
 		}
-		err := vim.ExecLua("return NvcatGetHl(...)", &hl, lineNum, col)
+
+		var hl map[string]any
+		err := vim.ExecLua("return NvcatGetHl(...)", &hl, lineNum, byteOffset)
 		if err != nil {
 			if currentAnsi != "" {
 				fmt.Fprint(os.Stderr, AnsiReset)
 				currentAnsi = ""
 			}
-			fmt.Fprint(os.Stdout, string(line[col]))
+			fmt.Fprint(os.Stdout, string(ch))
 			continue
 		}
 
@@ -204,7 +205,7 @@ func printHighlightedLine(vim *nvim.Nvim, lineNum int, line string, opts formatO
 				fmt.Fprint(os.Stderr, AnsiReset)
 				currentAnsi = ""
 			}
-			fmt.Fprint(os.Stdout, string(line[col]))
+			fmt.Fprint(os.Stdout, string(ch))
 			continue
 		}
 
@@ -217,7 +218,7 @@ func printHighlightedLine(vim *nvim.Nvim, lineNum int, line string, opts formatO
 			currentAnsi = ansi
 		}
 
-		fmt.Fprint(os.Stdout, string(line[col]))
+		fmt.Fprint(os.Stdout, string(ch))
 	}
 
 	// Reset color at the end of the line
