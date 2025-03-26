@@ -17,6 +17,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo snap install lxd
+          sudo usermod -aG lxd "$USER"
 
       - name: Install Snapcraft
         uses: samuelmeuli/action-snapcraft@v3
