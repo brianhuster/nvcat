@@ -10,7 +10,7 @@ import (
 	"strings"
 	"strconv"
 	"bytes"
-	"github.com/clipperhouse/uax29/words"
+	"github.com/clipperhouse/uax29/graphemes"
 )
 
 const (
@@ -182,7 +182,7 @@ func getAnsiFromHl(hl map[string]any) (string, error) {
 
 func printHighlightedLine(vim *nvim.Nvim, lineNum int, line string, opts formatOpts) (string, error) {
 	var currentAnsi string
-	segments := words.NewSegmenter([]byte(line))
+	segments := graphemes.NewSegmenter([]byte(line))
 	col := 0
 	for segments.Next() {
 		var hl map[string]any
