@@ -10,6 +10,7 @@ import (
 	"strings"
 	"strconv"
 	"bytes"
+	"github.com/clipperhouse/uax29/graphemes"
 )
 
 const (
@@ -181,11 +182,15 @@ func getAnsiFromHl(hl map[string]any) (string, error) {
 
 func printHighlightedLine(vim *nvim.Nvim, lineNum int, line string, opts formatOpts) (string, error) {
 	var currentAnsi string
-
-	for col := range len(line) {
+	segments := graphemes.NewSegmenter([]byte(line))
+	col := 0
+	for segments.Next() {
 		var hl map[string]any
-		if line[col] == '\t' {
+		token := segments.Text()
+		token_len := len(token)
+		if token_len == 1 && token[0] == '\t' {
 			fmt.Fprint(os.Stdout, opts.tab)
+			col += token_len
 			continue
 		}
 		err := vim.ExecLua("return NvcatGetHl(...)", &hl, lineNum, col)
@@ -194,7 +199,8 @@ func printHighlightedLine(vim *nvim.Nvim, lineNum int, line string, opts formatO
 				fmt.Fprint(os.Stderr, AnsiReset)
 				currentAnsi = ""
 			}
-			fmt.Fprint(os.Stdout, string(line[col]))
+			fmt.Fprint(os.Stdout, token)
+			col += token_len
 			continue
 		}
 
@@ -204,7 +210,8 @@ func printHighlightedLine(vim *nvim.Nvim, lineNum int, line string, opts formatO
 				fmt.Fprint(os.Stderr, AnsiReset)
 				currentAnsi = ""
 			}
-			fmt.Fprint(os.Stdout, string(line[col]))
+			fmt.Fprint(os.Stdout, token)
+			col += token_len
 			continue
 		}
 
@@ -217,7 +224,8 @@ func printHighlightedLine(vim *nvim.Nvim, lineNum int, line string, opts formatO
 			currentAnsi = ansi
 		}
 
-		fmt.Fprint(os.Stdout, string(line[col]))
+		fmt.Fprint(os.Stdout, token)
+		col += token_len
 	}
 
 	// Reset color at the end of the line
