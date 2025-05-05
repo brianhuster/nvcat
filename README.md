@@ -131,4 +131,5 @@ end
 
 ## Credits
 
-- [neovim/go-client](https://github.com/neovim/go-client)
+- [neovim/go-client](https://github.com/neovim/go-client) : Controlling Nvim from Go
+- [clipperhouse/uax29](https://github.com/clipperhouse/uax29): Unicode graphemes support
