@@ -50,7 +50,7 @@ See the [releases page](https://github.com/brianhuster/nvcat/releases) for prebu
 Requires Go 1.22+
 
 ```bash
-go install github.com/brianhuster/nvimcat@latest
+go install github.com/brianhuster/nvcat@latest
 ```
 
 Or clone and build manually:
